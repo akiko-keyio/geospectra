@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from loguru import logger
-from geospectra.format import Polynomial2D, SphericalHarmonics
+from geospectra.basis import PolynomialBasis, SphericalHarmonicsBasis
 
 
 class PCA:
@@ -266,12 +266,12 @@ class LinearBasis2DTransformer:
 
     def fit(self, X):
         basis_instance_dict = {
-            "chebyshev": Polynomial2D(basis="chebyshev"),
-            "polynomial": Polynomial2D(basis="polynomial"),
-            "polynomial_normal_solver": Polynomial2D(basis="polynomial"),
-            "legendre": Polynomial2D(basis="legendre"),
-            "spherical_harmonics": SphericalHarmonics(cup=False),
-            "spherical_cup_harmonics": SphericalHarmonics(cup=True),
+            "chebyshev": PolynomialBasis(basis="chebyshev"),
+            "polynomial": PolynomialBasis(basis="polynomial"),
+            "polynomial_normal_solver": PolynomialBasis(basis="polynomial"),
+            "legendre": PolynomialBasis(basis="legendre"),
+            "spherical_harmonics": SphericalHarmonicsBasis(cup=False),
+            "spherical_cup_harmonics": SphericalHarmonicsBasis(cup=True),
         }
 
         self.basis_tramsfomer = basis_instance_dict[self.basis]
