@@ -1,6 +1,6 @@
 from .basis import CoordsConverter, PolynomialBasis, SphericalHarmonicsBasis
+from .linear_model import BasisFunctionRegressor
 from .transform_coding import (
-    GeneralizedLinearModel,
     LinearBasis2DTransformer,
     PCA,
 )
@@ -9,7 +9,7 @@ __all__ = [
     "CoordsConverter",
     "PolynomialBasis",
     "SphericalHarmonicsBasis",
-    "GeneralizedLinearModel",
+    "BasisFunctionRegressor",
     "LinearBasis2DTransformer",
     "PCA",
     "main",
