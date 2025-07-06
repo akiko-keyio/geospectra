@@ -1,12 +1,6 @@
 from abc import abstractmethod
 import numpy as np
-import numpy as np
-from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin, _fit_context
-from sklearn.metrics import euclidean_distances
-from sklearn.utils.multiclass import check_classification_targets
-from sklearn.utils.validation import check_is_fitted
 from numpy.polynomial import Chebyshev, Legendre
-from scipy.special import sph_harm, legendre
 
 
 class DesignMatrixTransformer:
@@ -317,7 +311,6 @@ class CoordsConvert:
         return theta_scale, phi1
 
 
-
 class LinearBasisModel:
     def __init__(self, design_matrix_builder):
         self.design_matrix_builder = design_matrix_builder
@@ -341,7 +334,6 @@ class LinearBasisModel:
         return self
 
     def predict(self, X):
-
         X_design = self.design_matrix_builder.transform(X, self.degree)
         return X_design @ self.coef_
 

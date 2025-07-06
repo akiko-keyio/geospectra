@@ -1,11 +1,12 @@
 from numbers import Integral
 from numpy.polynomial import Legendre, Chebyshev
-from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin, _fit_context
+from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
 from sklearn.utils._param_validation import Interval, StrOptions, RealNotInt
 from sklearn.utils.validation import _check_feature_names_in, check_is_fitted
 import numpy as np
 from scipy.special import sph_harm
 from sklearn.utils.validation import validate_data
+
 
 class Polynomial2D(TransformerMixin, BaseEstimator):
     """An example transformer that returns the element-wise square root.
@@ -48,10 +49,10 @@ class Polynomial2D(TransformerMixin, BaseEstimator):
     }
 
     def __init__(
-            self,
-            degree=2,
-            include_bias=True,
-            basis="polynomial",
+        self,
+        degree=2,
+        include_bias=True,
+        basis="polynomial",
     ):
         self.degree = degree
         self.include_bias = include_bias
@@ -75,12 +76,12 @@ class Polynomial2D(TransformerMixin, BaseEstimator):
         self : object
             Returns self.
         """
-        X = validate_data(self,X, accept_sparse=True)
+        X = validate_data(self, X, accept_sparse=True)
         _, n_features = X.shape
 
         if n_features != 2:
             raise ValueError(
-                "This transformer only works with 2 features, but got" f" {n_features}."
+                f"This transformer only works with 2 features, but got {n_features}."
             )
 
         if isinstance(self.degree, Integral):
@@ -90,9 +91,7 @@ class Polynomial2D(TransformerMixin, BaseEstimator):
                     "an empty output array."
                 )
         else:
-            raise ValueError(
-                "degree must be a non-negative int, got " f"{self.degree}."
-            )
+            raise ValueError(f"degree must be a non-negative int, got {self.degree}.")
 
         self.min_vals = X.min(axis=0)
         self.max_vals = X.max(axis=0)
@@ -105,7 +104,6 @@ class Polynomial2D(TransformerMixin, BaseEstimator):
         feature_names = []
         for i in range(self.degree + 1):
             for j in range(self.degree + 1 - i):
-
                 if i == 0 and j == 0:
                     if self.include_bias:
                         feature_names.append("1")
@@ -126,12 +124,16 @@ class Polynomial2D(TransformerMixin, BaseEstimator):
                     term1 = (
                         f"{f}{i}({input_features[0]})"
                         if i > 1
-                        else f"{input_features[0]}" if i == 1 else ""
+                        else f"{input_features[0]}"
+                        if i == 1
+                        else ""
                     )
                     term2 = (
                         f"{f}{j}({input_features[1]})"
                         if j > 1
-                        else f"{input_features[1]}" if j == 1 else ""
+                        else f"{input_features[1]}"
+                        if j == 1
+                        else ""
                     )
                     feature_names.append(f"{term1} {term2}".strip())
 
@@ -153,7 +155,7 @@ class Polynomial2D(TransformerMixin, BaseEstimator):
         """
         check_is_fitted(self)
 
-        X = validate_data(self,X, accept_sparse=True, reset=False)
+        X = validate_data(self, X, accept_sparse=True, reset=False)
 
         X = 2 * (X - self.min_vals) / (self.max_vals - self.min_vals) - 1
 
@@ -171,7 +173,7 @@ class Polynomial2D(TransformerMixin, BaseEstimator):
                         index += 1
                     continue
                 if self.basis == "polynomial":
-                    X_transform[:, index] = (X1 ** i) * (X2 ** j)
+                    X_transform[:, index] = (X1**i) * (X2**j)
                 elif self.basis == "legendre":
                     X_transform[:, index] = Legendre.basis(i)(X1) * Legendre.basis(j)(
                         X2
@@ -220,17 +222,26 @@ class SphericalHarmonics(TransformerMixin, BaseEstimator):
         "hemisphere_scale": [
             StrOptions({"auto"}),
             Interval(RealNotInt, 0, 1, closed="right"),
-        ]
+        ],
     }
 
-    def __init__(self, degree=2, pole="xyzmean", cup=True, include_bias=True, hemisphere_scale='auto',force_norm=False,coords_convert_method='central_scale'):
+    def __init__(
+        self,
+        degree=2,
+        pole="xyzmean",
+        cup=True,
+        include_bias=True,
+        hemisphere_scale="auto",
+        force_norm=False,
+        coords_convert_method="central_scale",
+    ):
         self.degree = degree
         self.pole = pole
         self.cup = cup
         self.include_bias = include_bias
         self.hemisphere_scale = hemisphere_scale
-        self.force_norm=force_norm
-        self.coords_convert_method=coords_convert_method
+        self.force_norm = force_norm
+        self.coords_convert_method = coords_convert_method
 
     @_fit_context(prefer_skip_nested_validation=True)
     def fit(self, X, y=None):
@@ -250,12 +261,12 @@ class SphericalHarmonics(TransformerMixin, BaseEstimator):
             Returns self.
         """
 
-        X = validate_data(self,X, accept_sparse=True)
+        X = validate_data(self, X, accept_sparse=True)
         _, n_features = X.shape
 
         if n_features != 2:
             raise ValueError(
-                "This transformer only works with 2 features, but got" f" {n_features}."
+                f"This transformer only works with 2 features, but got {n_features}."
             )
 
         if isinstance(self.degree, Integral):
@@ -265,28 +276,28 @@ class SphericalHarmonics(TransformerMixin, BaseEstimator):
                     "an empty output array."
                 )
         else:
-            raise ValueError(
-                "degree must be a non-negative int, got " f"{self.degree}."
-            )
+            raise ValueError(f"degree must be a non-negative int, got {self.degree}.")
 
         self.min_vals = X.min(axis=0)
         self.max_vals = X.max(axis=0)
         self.n_output_features_ = len(self.get_feature_names_out())
-        empirical_n_output_features_ = ((self.degree + 1) * (self.degree + 2) // 2
-                                        if self.cup
-                                        else (self.degree + 1) ** 2)
+        empirical_n_output_features_ = (
+            (self.degree + 1) * (self.degree + 2) // 2
+            if self.cup
+            else (self.degree + 1) ** 2
+        )
         if not self.include_bias:
             empirical_n_output_features_ -= 1
 
-        assert (
-                self.n_output_features_ == empirical_n_output_features_
-        )
-        if self.hemisphere_scale == 'auto':
+        assert self.n_output_features_ == empirical_n_output_features_
+        if self.hemisphere_scale == "auto":
             hemisphere_scale = 0.5 if self.cup else 1
         else:
             hemisphere_scale = self.hemisphere_scale
         self.coords_convert = CoordsConvert(
-            pole=self.pole, hemisphere_scale=hemisphere_scale,method=self.coords_convert_method,
+            pole=self.pole,
+            hemisphere_scale=hemisphere_scale,
+            method=self.coords_convert_method,
         )
 
         lon, lat = X[:, 0], X[:, 1]
@@ -309,7 +320,7 @@ class SphericalHarmonics(TransformerMixin, BaseEstimator):
         """
         check_is_fitted(self, "coords_convert")
 
-        X = validate_data(self,X, accept_sparse=True)
+        X = validate_data(self, X, accept_sparse=True)
         lon, lat = X[:, 0], X[:, 1]
         theta, phi = self.coords_convert.transform(lon, lat)
 
@@ -320,14 +331,14 @@ class SphericalHarmonics(TransformerMixin, BaseEstimator):
 
         # https://www.wikiwand.com/en/articles/Spherical_harmonics
         # https://www.wikiwand.com/en/articles/Spherical_harmonics#Real_form
-        for l in range(self.degree + 1):
-            if l == 0 and not self.include_bias:
+        for order in range(self.degree + 1):
+            if order == 0 and not self.include_bias:
                 continue
-            for m in range(-l, l + 1):
-                if self.cup and (m - l) % 2 == 1:
+            for m in range(-order, order + 1):
+                if self.cup and (m - order) % 2 == 1:
                     continue
-                Y_l_m_abs = sph_harm(abs(m), l, phi, theta)
-                self.terms.append(f"Y{l}{m}")
+                Y_l_m_abs = sph_harm(abs(m), order, phi, theta)
+                self.terms.append(f"Y{order}{m}")
                 if m < 0:
                     X[:, index] = np.sqrt(2) * (-1) ** m * Y_l_m_abs.imag
                 elif m == 0:
@@ -341,7 +352,7 @@ class SphericalHarmonics(TransformerMixin, BaseEstimator):
             X = X * np.sqrt(2)
 
         if self.force_norm:
-            X = X*X.shape[0] / np.linalg.norm(X, axis=0)
+            X = X * X.shape[0] / np.linalg.norm(X, axis=0)
 
         return X
 
@@ -359,13 +370,13 @@ class SphericalHarmonics(TransformerMixin, BaseEstimator):
             Transformed feature names.
         """
         feature_names = []
-        for l in range(self.degree + 1):
-            if l == 0 and not self.include_bias:
+        for order in range(self.degree + 1):
+            if order == 0 and not self.include_bias:
                 continue
-            for m in range(-l, l + 1):
-                if self.cup and (m - l) % 2 == 1:
+            for m in range(-order, order + 1):
+                if self.cup and (m - order) % 2 == 1:
                     continue
-                feature_names.append(f"Y:{l},{m}")
+                feature_names.append(f"Y:{order},{m}")
 
         return np.asarray(feature_names, dtype=object)
 
@@ -396,9 +407,9 @@ class CoordsConvert:
             self.theta0 = np.radians(90 - lat0)
             self.phi0 = np.radians(lon0)
         elif (
-                isinstance(self.pole, tuple)
-                and len(self.pole) == 2
-                and all(isinstance(item, float) for item in self.pole)
+            isinstance(self.pole, tuple)
+            and len(self.pole) == 2
+            and all(isinstance(item, float) for item in self.pole)
         ):
             self.theta0 = np.radians(90 - self.pole[0])
             self.phi0 = np.radians(self.pole[1])
@@ -484,8 +495,8 @@ class CoordsConvert:
             dlon = lon2 - lon1
             dlat = lat2 - lat1
             a = (
-                    np.sin(dlat / 2.0) ** 2
-                    + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2.0) ** 2
+                np.sin(dlat / 2.0) ** 2
+                + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2.0) ** 2
             )
             c = 2 * np.arcsin(np.sqrt(a))
             return c
@@ -508,7 +519,7 @@ class CoordsConvert:
         z_mean = np.mean(z)
 
         central_lon = np.arctan2(y_mean, x_mean)
-        central_lat = np.arctan2(z_mean, np.sqrt(x_mean ** 2 + y_mean ** 2))
+        central_lat = np.arctan2(z_mean, np.sqrt(x_mean**2 + y_mean**2))
 
         central_lon = np.degrees(central_lon)
         central_lat = np.degrees(central_lat)
@@ -542,9 +553,9 @@ class CoordsConvert:
         # Convert to longitude with the pole as the center
         sin_phi1 = np.sin(theta) * np.sin(phi - self.phi0) / np.sin(theta1)
         cos_phi1 = (
-                           np.sin(self.theta0) * np.cos(theta)
-                           - np.cos(self.theta0) * np.sin(theta) * np.cos(phi - self.phi0)
-                   ) / np.sin(theta1)
+            np.sin(self.theta0) * np.cos(theta)
+            - np.cos(self.theta0) * np.sin(theta) * np.cos(phi - self.phi0)
+        ) / np.sin(theta1)
         phi1 = np.arctan2(sin_phi1, cos_phi1)
 
         return theta1, phi1
