@@ -1,14 +1,11 @@
 import numpy as np
 import pandas as pd
 from loguru import logger
-from pyproj import transform
-
-from ztd_codec.models.format import Polynomial2D, SphericalHarmonics
+from geospectra.format import Polynomial2D, SphericalHarmonics
 
 
 class PCA:
-
-    def __init__(self, criteria='normal'):
+    def __init__(self, criteria="normal"):
         self.mean_ = None
         self.feature_names_in_ = None
         self.n_features = None
@@ -88,7 +85,7 @@ class PCA:
             )
 
     def select_components(self, n_components=1, X=None):
-        if self.criteria == 'normal':
+        if self.criteria == "normal":
             return self.components_[:, :n_components]
         else:
             raise NotImplementedError
@@ -123,12 +120,20 @@ class PCA:
         return self.inverse_transform(self.transform(X, n_components))
 
     def report(self, n_components):
-        return {'condition_number': np.linalg.cond(self.components_selected_),
-                'param_num': n_components}
+        return {
+            "condition_number": np.linalg.cond(self.components_selected_),
+            "param_num": n_components,
+        }
 
 
 class GeneralizedLinearModel:
-    def __init__(self, basis_function, variable_names=["lon", "lat"], solver='svd', fit_intercept=False):
+    def __init__(
+        self,
+        basis_function,
+        variable_names=["lon", "lat"],
+        solver="svd",
+        fit_intercept=False,
+    ):
         """
         Initialize the GeneralizedLinearModel with a specified basis function and solver.
 
@@ -179,17 +184,19 @@ class GeneralizedLinearModel:
 
         # Fit intercept_
         y = np.asarray(y)
-        self.intercept_=np.zeros(y.shape[1])
+        self.intercept_ = np.zeros(y.shape[1])
         if self.fit_intercept:
             self.intercept_ = np.mean(y, axis=0)
             y = y - self.intercept_
 
         # Calculate the pseudo-inverse of the design matrix
-        if self.solver == 'normal':
-            logger.warning('Using normal solver, result may be unreliable')
-            X_design_pinv = np.linalg.inv(X_transformed.T @ X_transformed) @ X_transformed.T
-        elif self.solver == 'svd':
-            logger.info('Using svd solver')
+        if self.solver == "normal":
+            logger.warning("Using normal solver, result may be unreliable")
+            X_design_pinv = (
+                np.linalg.inv(X_transformed.T @ X_transformed) @ X_transformed.T
+            )
+        elif self.solver == "svd":
+            logger.info("Using svd solver")
             X_design_pinv = np.linalg.pinv(X_transformed, rcond=1e-13)
         else:
             raise ValueError("Solver must be 'normal' or 'svd'.")
@@ -214,7 +221,7 @@ class GeneralizedLinearModel:
         X_transformed = self.basis_function.transform(X)
 
         # Predict using the computed coefficients
-        return X_transformed @ self.coef_+ self.intercept_[np.newaxis, :]
+        return X_transformed @ self.coef_ + self.intercept_[np.newaxis, :]
 
 
 class LinearBasis2DTransformer:
@@ -230,14 +237,14 @@ class LinearBasis2DTransformer:
     """
 
     def __init__(
-            self, basis, variable_names=["lon", "lat"], features_name="site", solver='svd'
+        self, basis, variable_names=["lon", "lat"], features_name="site", solver="svd"
     ):
         self.basis = basis
         self.variable_names = variable_names
         self.feature_name = features_name
         self.solver = solver
-        if basis == 'polynomial_normal_solver':
-            self.solver = 'normal'
+        if basis == "polynomial_normal_solver":
+            self.solver = "normal"
 
         self.coef_ = None
         self.feature_names_in_ = None
@@ -259,13 +266,12 @@ class LinearBasis2DTransformer:
 
     def fit(self, X):
         basis_instance_dict = {
-            'chebyshev': Polynomial2D(basis='chebyshev'),
-            'polynomial': Polynomial2D(basis='polynomial'),
-            'polynomial_normal_solver': Polynomial2D(basis='polynomial'),
-            'legendre': Polynomial2D(basis='legendre'),
-            'spherical_harmonics': SphericalHarmonics(cup=False),
-            'spherical_cup_harmonics': SphericalHarmonics(cup=True)
-
+            "chebyshev": Polynomial2D(basis="chebyshev"),
+            "polynomial": Polynomial2D(basis="polynomial"),
+            "polynomial_normal_solver": Polynomial2D(basis="polynomial"),
+            "legendre": Polynomial2D(basis="legendre"),
+            "spherical_harmonics": SphericalHarmonics(cup=False),
+            "spherical_cup_harmonics": SphericalHarmonics(cup=True),
         }
 
         self.basis_tramsfomer = basis_instance_dict[self.basis]
@@ -286,11 +292,13 @@ class LinearBasis2DTransformer:
         # This method uses Singular Value Decomposition (SVD) to compute the Moore-Penrose pseudo-inverse.
         # Mathematical equal to X_design_pseudo_inverse = np.linalg.inv((X_design.T @ X_design)) @ X_design.T
         # But it is robust and can handle cases where the design matrix is not full rank (i.e., columns are linearly dependent).
-        if self.solver == 'normal':
-            logger.warning('Using normal solver, result may be unreliable')
-            self.X_design_pinv = np.linalg.inv((self.X_design.T @ self.X_design)) @ self.X_design.T
-        elif self.solver == 'svd':
-            logger.info('Using svd solver')
+        if self.solver == "normal":
+            logger.warning("Using normal solver, result may be unreliable")
+            self.X_design_pinv = (
+                np.linalg.inv((self.X_design.T @ self.X_design)) @ self.X_design.T
+            )
+        elif self.solver == "svd":
+            logger.info("Using svd solver")
             self.X_design_pinv = np.linalg.pinv(self.X_design)
         else:
             raise ValueError()
@@ -306,10 +314,12 @@ class LinearBasis2DTransformer:
 
     def report(self, degree):
         X_design = self.basis_tramsfomer.set_params(degree=degree).fit_transform(self.X)
-        return {'condition_number': np.linalg.cond(X_design),
-                'param_num': X_design.shape[1]}
+        return {
+            "condition_number": np.linalg.cond(X_design),
+            "param_num": X_design.shape[1],
+        }
 
     def get_design_matrix(self, degree):
-        self.basis_tramsfomer.set_output(transform='pandas')
+        self.basis_tramsfomer.set_output(transform="pandas")
         self.basis_tramsfomer.set_params(degree=degree)
         return self.basis_tramsfomer.fit_transform(self.X).T
