@@ -1,5 +1,5 @@
-from .format import CoordsConvert, Polynomial2D, SphericalHarmonics
-from .linear_basis_function import Chebyshev2DModel, Polynomial2DModel
+from .basis import CoordsConverter, PolynomialBasis, SphericalHarmonicsBasis
+from .linear_basis_function import ChebyshevModel, PolynomialModel
 from .transform_coding import (
     GeneralizedLinearModel,
     LinearBasis2DTransformer,
@@ -7,11 +7,11 @@ from .transform_coding import (
 )
 
 __all__ = [
-    "CoordsConvert",
-    "Polynomial2D",
-    "SphericalHarmonics",
-    "Chebyshev2DModel",
-    "Polynomial2DModel",
+    "CoordsConverter",
+    "PolynomialBasis",
+    "SphericalHarmonicsBasis",
+    "ChebyshevModel",
+    "PolynomialModel",
     "GeneralizedLinearModel",
     "LinearBasis2DTransformer",
     "PCA",

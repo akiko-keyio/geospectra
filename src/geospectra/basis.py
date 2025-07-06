@@ -8,7 +8,7 @@ from scipy.special import sph_harm
 from sklearn.utils.validation import validate_data
 
 
-class Polynomial2D(TransformerMixin, BaseEstimator):
+class PolynomialBasis(TransformerMixin, BaseEstimator):
     """An example transformer that returns the element-wise square root.
 
     For more information regarding how to build your own transformer, read more
@@ -189,7 +189,7 @@ class Polynomial2D(TransformerMixin, BaseEstimator):
         return X_transform
 
 
-class SphericalHarmonics(TransformerMixin, BaseEstimator):
+class SphericalHarmonicsBasis(TransformerMixin, BaseEstimator):
     """Transformer for generating spherical harmonics features.
 
     Parameters
@@ -294,7 +294,7 @@ class SphericalHarmonics(TransformerMixin, BaseEstimator):
             hemisphere_scale = 0.5 if self.cup else 1
         else:
             hemisphere_scale = self.hemisphere_scale
-        self.coords_convert = CoordsConvert(
+        self.coords_convert = CoordsConverter(
             pole=self.pole,
             hemisphere_scale=hemisphere_scale,
             method=self.coords_convert_method,
@@ -381,10 +381,10 @@ class SphericalHarmonics(TransformerMixin, BaseEstimator):
         return np.asarray(feature_names, dtype=object)
 
 
-class CoordsConvert:
+class CoordsConverter:
     def __init__(self, pole="haversine", method="central_scale", hemisphere_scale=1.0):
         """
-        Initialize the CoordsConvert class.
+        Initialize the CoordsConverter class.
 
         :param pole: Tuple of (latitude, longitude) or 'calculate' to determine the pole automatically.
         :param method: The method to use for conversion ('non', 'basic', 'central', 'central_scale').
