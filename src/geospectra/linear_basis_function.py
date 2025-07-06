@@ -5,11 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.utils.validation import check_is_fitted
 
 from .basis import PolynomialBasis
 
 
-class LinearBasisModel:
+class LinearBasisModel(BaseEstimator, RegressorMixin):
     """Linear model using a basis transformer."""
 
     def __init__(self, transformer: PolynomialBasis) -> None:
@@ -20,19 +22,19 @@ class LinearBasisModel:
     def fit(
         self, X: np.ndarray, y: np.ndarray | None = None, degree: int = 1
     ) -> "LinearBasisModel":
+        X, y = self._validate_data(X, y, multi_output=True, y_numeric=True)
         self.degree = degree
         self.transformer.set_params(degree=degree)
         self.transformer.fit(X)
         design = self.transformer.transform(X)
         self._pinv = np.linalg.pinv(design)
         if y is not None:
-            self.coef_ = self._pinv @ np.asarray(y)
+            self.coef_ = self._pinv @ y
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
+        check_is_fitted(self, "coef_")
         design = self.transformer.transform(X)
-        if self.coef_ is None:
-            raise ValueError("Model is not fitted")
         return design @ self.coef_
 
 

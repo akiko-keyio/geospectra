@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from loguru import logger
+from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.utils.validation import check_is_fitted
 from geospectra.basis import PolynomialBasis, SphericalHarmonicsBasis
 
 
@@ -17,9 +19,7 @@ class PCA:
     def _validate_and_extract_data(self, X):
         if not isinstance(X, pd.DataFrame):
             raise TypeError(
-                "Expected input type is pd.DataFrame, but got {}".format(
-                    type(X).__name__
-                )
+                f"Expected input type is pd.DataFrame, but got {type(X).__name__}"
             )
         if X.isna().any().any():
             raise ValueError("NaN values in X")
@@ -126,7 +126,7 @@ class PCA:
         }
 
 
-class GeneralizedLinearModel:
+class GeneralizedLinearModel(BaseEstimator, RegressorMixin):
     def __init__(
         self,
         basis_function,
@@ -142,7 +142,7 @@ class GeneralizedLinearModel:
         - solver: The method to use for parameter estimation ('normal' or 'svd').
         """
         self.basis_function = basis_function
-        self.variable_names = variable_names
+        self.variable_names = list(variable_names)
         self.solver = solver
         self.coef_ = None
         self.fit_intercept = fit_intercept
@@ -157,15 +157,12 @@ class GeneralizedLinearModel:
         """
         if not isinstance(X, pd.DataFrame):
             raise TypeError(
-                "Expected input type is pd.DataFrame, but got {}".format(
-                    type(X).__name__
-                )
+                f"Expected input type is pd.DataFrame, but got {type(X).__name__}"
             )
         if X.isna().any().any():
             raise ValueError("NaN values in X")
 
         X = X[self.variable_names].values
-
         return X
 
     def fit(self, X, y):
@@ -176,6 +173,8 @@ class GeneralizedLinearModel:
         - X: A pandas DataFrame containing 'lon' and 'lat' columns.
         - y: A pandas Series or numpy array containing the target variable.
         """
+        self.feature_names_in_ = list(X.columns)
+        self.feature_names_in_ = list(X.columns)
         X = self._validate_and_extract_data(X)
 
         # Generate features using the basis function
@@ -215,6 +214,7 @@ class GeneralizedLinearModel:
         Returns:
         - Predictions as a numpy array.
         """
+        check_is_fitted(self, "coef_")
         X = self._validate_and_extract_data(X)
 
         # Generate features using the basis function
@@ -224,7 +224,7 @@ class GeneralizedLinearModel:
         return X_transformed @ self.coef_ + self.intercept_[np.newaxis, :]
 
 
-class LinearBasis2DTransformer:
+class LinearBasis2DTransformer(BaseEstimator):
     """
     This class is designed to transform 2D data using specified basis functions
     (e.g., polynomial, Chebyshev, Legendre, spherical harmonics). It requires
@@ -280,6 +280,7 @@ class LinearBasis2DTransformer:
         return self
 
     def transform(self, X):
+        check_is_fitted(self, "basis_tramsfomer")
         if (X.columns != self.feature_names_in_).any():
             raise ValueError(
                 "The data to transform is not in the same feature space as the fitted"
