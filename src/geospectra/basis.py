@@ -223,6 +223,10 @@ class SphericalHarmonicsBasis(TransformerMixin, BaseEstimator):
             StrOptions({"auto"}),
             Interval(RealNotInt, 0, 1, closed="right"),
         ],
+        "force_norm": ["boolean"],
+        "coords_convert_method": [
+            StrOptions({"central_scale", "central", "basic", "non"})
+        ],
     }
 
     def __init__(
@@ -320,7 +324,7 @@ class SphericalHarmonicsBasis(TransformerMixin, BaseEstimator):
         """
         check_is_fitted(self, "coords_convert")
 
-        X = validate_data(self, X, accept_sparse=True)
+        X = validate_data(self, X, accept_sparse=True, reset=False)
         lon, lat = X[:, 0], X[:, 1]
         theta, phi = self.coords_convert.transform(lon, lat)
 
@@ -369,6 +373,7 @@ class SphericalHarmonicsBasis(TransformerMixin, BaseEstimator):
         feature_names : ndarray of str
             Transformed feature names.
         """
+        input_features = _check_feature_names_in(self, input_features)
         feature_names = []
         for order in range(self.degree + 1):
             if order == 0 and not self.include_bias:
