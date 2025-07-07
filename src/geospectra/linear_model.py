@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Tuple
-from sklearn.base import  _fit_context
+from sklearn.base import _fit_context
 import numpy as np
 
 
-import numpy as np
 import scipy.sparse as sp
 from scipy import linalg
 from sklearn.linear_model import LinearRegression
@@ -16,7 +14,6 @@ from sklearn.utils.validation import (
     _check_sample_weight,
 )
 from sklearn.linear_model._base import _preprocess_data, _rescale_data
-
 
 
 class LinearRegressionCond(LinearRegression):
@@ -38,7 +35,6 @@ class LinearRegressionCond(LinearRegression):
             positive=positive,
         )
         self.cond_threshold = cond_threshold  # 新增可调超参数
-
 
     @_fit_context(prefer_skip_nested_validation=True)
     def fit(self, X, y, sample_weight=None):
@@ -77,9 +73,7 @@ class LinearRegressionCond(LinearRegression):
         )
 
         if has_sw:
-            X, y = _rescale_data(
-                X, y, sample_weight, inplace=copy_X
-            )
+            X, y = _rescale_data(X, y, sample_weight, inplace=copy_X)
 
         # Custom Condition Number Control
         self.cond_threshold_ = self._resolve_cond_threshold(X.shape, X.dtype)
@@ -113,4 +107,3 @@ class LinearRegressionCond(LinearRegression):
 
 
 __all__ = ["LinearRegressionCond"]
-
