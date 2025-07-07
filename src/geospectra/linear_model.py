@@ -36,6 +36,10 @@ class LinearRegressionCond(LinearRegression):
         )
         self.cond_threshold = cond_threshold  # 新增可调超参数
 
+    def get_metadata_routing(self):
+        """Return metadata routing from the parent estimator."""
+        return super().get_metadata_routing()
+
     @_fit_context(prefer_skip_nested_validation=True)
     def fit(self, X, y, sample_weight=None):
         """

@@ -3,7 +3,7 @@ import pandas as pd
 
 
 class PCA:
-    def __init__(self, criteria="normal"):
+    def __init__(self, *, criteria="normal") -> None:
         self.mean_ = None
         self.feature_names_in_ = None
         self.n_features = None

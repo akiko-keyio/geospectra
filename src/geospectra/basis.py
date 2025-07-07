@@ -50,10 +50,11 @@ class PolynomialBasis(TransformerMixin, BaseEstimator):
 
     def __init__(
         self,
+        *,
         degree=2,
         include_bias=True,
         basis="polynomial",
-    ):
+    ) -> None:
         self.degree = degree
         self.include_bias = include_bias
         self.basis = basis
@@ -231,6 +232,7 @@ class SphericalHarmonicsBasis(TransformerMixin, BaseEstimator):
 
     def __init__(
         self,
+        *,
         degree=2,
         pole="xyzmean",
         cup=True,
@@ -238,7 +240,7 @@ class SphericalHarmonicsBasis(TransformerMixin, BaseEstimator):
         hemisphere_scale="auto",
         force_norm=False,
         coords_convert_method="central_scale",
-    ):
+    ) -> None:
         self.degree = degree
         self.pole = pole
         self.cup = cup
