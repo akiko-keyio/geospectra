@@ -3,92 +3,114 @@
 from __future__ import annotations
 
 from typing import Tuple
-
+from sklearn.base import  _fit_context
 import numpy as np
-from sklearn.base import BaseEstimator, RegressorMixin
-from sklearn.utils.validation import check_array, check_is_fitted
+
+from __future__ import annotations
+import numpy as np
+import scipy.sparse as sp
+from numpy.linalg import lstsq
+from sklearn.linear_model import LinearRegression
+from sklearn.utils.validation import (
+    validate_data,
+    _check_sample_weight,
+)
+from sklearn.linear_model._base import _preprocess_data, _rescale_data
 
 
-def _pseudo_inverse(
-    X: np.ndarray, *, solver: str = "svd", rcond: float = 1e-12
-) -> Tuple[np.ndarray, np.ndarray, int]:
-    """Return the pseudoinverse of ``X`` along with its singular values and rank."""
 
-    if solver == "normal":
-        pinv = np.linalg.inv(X.T @ X) @ X.T
-        singular_values = np.linalg.svd(X, compute_uv=False)
-        rank = np.linalg.matrix_rank(X)
-        return pinv, singular_values, rank
-
-    if solver == "svd":
-        U, S, Vt = np.linalg.svd(X, full_matrices=False)
-        cutoff = S.max() * rcond
-        mask = S > cutoff
-        Sinv = np.zeros_like(S)
-        Sinv[mask] = 1.0 / S[mask]
-        pinv = (Vt.T * Sinv) @ U.T
-        rank = int(mask.sum())
-        return pinv, S, rank
-
-    raise ValueError("solver must be 'normal' or 'svd'")
-
-
-class BasisFunctionRegressor(RegressorMixin, BaseEstimator):
-    """Linear regression estimator working on precomputed features."""
-
+class LinearRegressionCond(LinearRegression):
     def __init__(
         self,
         *,
-        solver: str = "svd",
-        fit_intercept: bool = False,
-        rcond: float = 1e-12,
-    ) -> None:
-        self.solver = solver
-        self.fit_intercept = fit_intercept
-        self.rcond = rcond
+        fit_intercept: bool = True,
+        copy_X: bool = True,
+        tol: float = 1e-6,
+        n_jobs: int | None = None,
+        positive: bool = False,
+        cond_threshold: float | str | None = "auto",
+    ):
+        super().__init__(
+            fit_intercept=fit_intercept,
+            copy_X=copy_X,
+            tol=tol,
+            n_jobs=n_jobs,
+            positive=positive,
+        )
+        self.cond_threshold = cond_threshold  # 新增可调超参数
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "BasisFunctionRegressor":
-        """Fit linear regression on a design matrix ``X``."""
 
-        X = check_array(X, dtype=float, ensure_2d=True)
-        y = check_array(y, dtype=float, ensure_2d=False)
+    @_fit_context(prefer_skip_nested_validation=True)
+    def fit(self, X, y, sample_weight=None):
+        """
+        Identical signature to sklearn's fit; only dense path differs.
+        """
+        if self.positive or sp.issparse(X):
+            return super().fit(X, y, sample_weight=sample_weight)
+
+        X, y = validate_data(
+            self,
+            X,
+            y,
+            accept_sparse=False,
+            y_numeric=True,
+            multi_output=True,
+            force_writeable=True,
+        )
+
+        has_sw = sample_weight is not None
+        if has_sw:
+            sample_weight = _check_sample_weight(
+                sample_weight,
+                X,
+                dtype=X.dtype,
+                ensure_non_negative=True,
+            )
+
+        copy_X = self.copy_X
+        X, y, X_offset, y_offset, X_scale = _preprocess_data(
+            X,
+            y,
+            fit_intercept=self.fit_intercept,
+            copy=copy_X,
+            sample_weight=sample_weight,
+        )
+
+        if has_sw:
+            X, y = _rescale_data(
+                X, y, sample_weight, inplace=copy_X
+            )
+
+        # Custom Condition Number Control
+        self.cond_ = self._resolve_cond(X.shape, X.dtype)
+        self.coef_, _, self.rank_, self.singular_ = lstsq(
+            X, y, cond=self.cond_
+        )
+        self.coef_ = self.coef_.T
+
         if y.ndim == 1:
-            y = y[:, None]
-
-        self.n_features_in_ = X.shape[1]
-
-        if self.fit_intercept:
-            X_offset = X.mean(axis=0)
-            y_offset = y.mean(axis=0)
-            X_centered = X - X_offset
-            y_centered = y - y_offset
-            self.pinv_matrix_, self.singular_, self.rank_ = _pseudo_inverse(
-                X_centered, solver=self.solver, rcond=self.rcond
-            )
-            coef = self.pinv_matrix_ @ y_centered
-            self.coef_ = coef.T
-            self.intercept_ = y_offset - X_offset @ self.coef_.T
-        else:
-            self.pinv_matrix_, self.singular_, self.rank_ = _pseudo_inverse(
-                X, solver=self.solver, rcond=self.rcond
-            )
-            coef = self.pinv_matrix_ @ y
-            self.coef_ = coef.T
-            self.intercept_ = np.zeros(y.shape[1])
-
-        if self.coef_.shape[0] == 1:
             self.coef_ = self.coef_.ravel()
-            self.intercept_ = float(self.intercept_)
 
+        self._set_intercept(X_offset, y_offset, X_scale)
         return self
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        """Predict using the linear model."""
+    # -------------------------- helper -------------------------------
+    def _resolve_cond(self, shape, dtype):
+        """
+        Translate user `cond` into float|None for numpy.linalg.lstsq.
+        See https://www.numberanalytics.com/blog/ultimate-guide-condition-number-determinants
+        """
 
-        check_is_fitted(self, ["coef_", "pinv_matrix_"])
-        X = check_array(X, dtype=float, ensure_2d=True)
-        pred = X @ (self.coef_.T)
-        return pred + self.intercept_
+        if self.cond == "auto":
+
+            return max(shape) * np.finfo(dtype).eps
+        if self.cond is None:
+            return None
+        if isinstance(self.cond, (int, float)):
+            if self.cond < 0:
+                raise ValueError("`cond` must be non-negative.")
+            return float(self.cond)
+        raise ValueError("`cond` must be 'auto', None or a non-negative float.")
 
 
-__all__ = ["BasisFunctionRegressor"]
+__all__ = ["LinearRegressionCond"]
