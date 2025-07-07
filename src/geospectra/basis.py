@@ -4,7 +4,7 @@ from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
 from sklearn.utils._param_validation import Interval, StrOptions, RealNotInt
 from sklearn.utils.validation import _check_feature_names_in, check_is_fitted
 import numpy as np
-from scipy.special import sph_harm
+from scipy.special import sph_harm_y
 from sklearn.utils.validation import validate_data
 
 
@@ -337,7 +337,7 @@ class SphericalHarmonicsBasis(TransformerMixin, BaseEstimator):
             for m in range(-order, order + 1):
                 if self.cup and (m - order) % 2 == 1:
                     continue
-                Y_l_m_abs = sph_harm(abs(m), order, phi, theta)
+                Y_l_m_abs = sph_harm_y(order, abs(m), theta, phi)
                 self.terms.append(f"Y{order}{m}")
                 if m < 0:
                     X[:, index] = np.sqrt(2) * (-1) ** m * Y_l_m_abs.imag
