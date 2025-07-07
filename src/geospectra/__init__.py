@@ -1,16 +1,22 @@
 from .basis import CoordsConverter, PolynomialBasis, SphericalHarmonicsBasis
-from .transform_coding import (
-    GeneralizedLinearModel,
-    LinearBasis2DTransformer,
-    PCA,
-)
+from .linear_model import BasisFunctionRegressor
+
+
+def __getattr__(name: str):
+    if name == "PCA":
+        from . import transforms
+
+        obj = getattr(transforms, name)
+        globals()[name] = obj
+        return obj
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "CoordsConverter",
     "PolynomialBasis",
     "SphericalHarmonicsBasis",
-    "GeneralizedLinearModel",
-    "LinearBasis2DTransformer",
+    "BasisFunctionRegressor",
     "PCA",
     "main",
 ]
