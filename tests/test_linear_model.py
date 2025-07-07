@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from geospectra.basis import PolynomialBasis, SphericalHarmonicsBasis
-from geospectra.linear_model import BasisFunctionRegressor
+from geospectra.linear_model import LinearRegressionCond
 from joblib import Memory
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
@@ -34,7 +34,7 @@ def test_polynomial_fit_predict_multi_target() -> None:
     pipe = Pipeline(
         [
             ("basis", basis),
-            ("reg", BasisFunctionRegressor(fit_intercept=True)),
+            ("reg", LinearRegressionCond(fit_intercept=True)),
         ]
     )
     pipe.fit(X, y)
@@ -50,7 +50,7 @@ def _make_spherical_data() -> tuple[np.ndarray, np.ndarray, SphericalHarmonicsBa
     lon = rng.uniform(-np.pi, np.pi, size=degree * 2)
     lat = rng.uniform(-np.pi / 2, np.pi / 2, size=degree * 2)
     X = np.column_stack([lon, lat])
-    basis = SphericalHarmonicsBasis(degree=degree, cup=False, include_bias=True)
+    basis = SphericalHarmonicsBasis(degree=degree, cup=False, include_bias=False)
     design = basis.fit_transform(X)
     coef = rng.normal(size=(design.shape[1], 1))
     intercept = rng.normal(size=1)
@@ -63,12 +63,12 @@ def test_spherical_fit_predict_single_target() -> None:
     pipe = Pipeline(
         [
             ("basis", basis),
-            ("reg", BasisFunctionRegressor(fit_intercept=True)),
+            ("reg", LinearRegressionCond(fit_intercept=True)),
         ]
     )
     pipe.fit(X, y)
     pred = pipe.predict(X)
-    assert np.allclose(pred, y.ravel())
+    assert np.allclose(pred, y)
 
 
 def test_incompatible_feature_space() -> None:
@@ -76,7 +76,7 @@ def test_incompatible_feature_space() -> None:
     pipe = Pipeline(
         [
             ("basis", basis),
-            ("reg", BasisFunctionRegressor(fit_intercept=True)),
+            ("reg", LinearRegressionCond(fit_intercept=True)),
         ]
     )
     pipe.fit(X, y)
@@ -90,7 +90,7 @@ def test_pipeline_compatibility() -> None:
         [
             ("scaler", StandardScaler()),
             ("basis", PolynomialBasis(degree=1)),
-            ("reg", BasisFunctionRegressor(fit_intercept=True)),
+            ("reg", LinearRegressionCond(fit_intercept=True)),
         ]
     )
     pipe.fit(X, y)
@@ -103,7 +103,7 @@ def test_grid_search_compatibility() -> None:
     pipe = Pipeline(
         [
             ("basis", PolynomialBasis(degree=1)),
-            ("reg", BasisFunctionRegressor()),
+            ("reg", LinearRegressionCond()),
         ]
     )
     grid = {"basis__degree": [1, 2]}
@@ -119,7 +119,7 @@ def test_pipeline_caches_basis(tmp_path) -> None:
     pipe = Pipeline(
         [
             ("basis", basis),
-            ("reg", BasisFunctionRegressor(fit_intercept=True)),
+            ("reg", LinearRegressionCond(fit_intercept=True)),
         ],
         memory=mem,
     )
