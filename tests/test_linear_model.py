@@ -3,6 +3,7 @@ import pytest
 
 from geospectra.basis import PolynomialBasis, SphericalHarmonicsBasis
 from geospectra.linear_model import BasisFunctionRegressor
+from joblib import Memory
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -19,19 +20,35 @@ def _make_polynomial_data() -> tuple[np.ndarray, np.ndarray, PolynomialBasis]:
     y = design @ coef + intercept
     return X, y, basis
 
+
+class CallCountingBasis(PolynomialBasis):
+    n_calls = 0
+
+    def transform(self, X):
+        CallCountingBasis.n_calls += 1
+        return super().transform(X)
+
+
 def test_polynomial_fit_predict_multi_target() -> None:
     X, y, basis = _make_polynomial_data()
-    reg = BasisFunctionRegressor(basis=basis, fit_intercept=True)
-    reg.fit(X, y)
+    pipe = Pipeline(
+        [
+            ("basis", basis),
+            ("reg", BasisFunctionRegressor(fit_intercept=True)),
+        ]
+    )
+    pipe.fit(X, y)
+    reg = pipe.named_steps["reg"]
     assert reg.coef_.shape == (2, basis.n_output_features_)
-    pred = reg.predict(X)
+    pred = pipe.predict(X)
     assert np.allclose(pred, y)
+
 
 def _make_spherical_data() -> tuple[np.ndarray, np.ndarray, SphericalHarmonicsBasis]:
     rng = np.random.default_rng(1)
-    degree=40
-    lon = rng.uniform(-np.pi, np.pi, size=degree*2)
-    lat = rng.uniform(-np.pi / 2, np.pi / 2, size=degree*2)
+    degree = 40
+    lon = rng.uniform(-np.pi, np.pi, size=degree * 2)
+    lat = rng.uniform(-np.pi / 2, np.pi / 2, size=degree * 2)
     X = np.column_stack([lon, lat])
     basis = SphericalHarmonicsBasis(degree=degree, cup=False, include_bias=True)
     design = basis.fit_transform(X)
@@ -40,29 +57,31 @@ def _make_spherical_data() -> tuple[np.ndarray, np.ndarray, SphericalHarmonicsBa
     y = design @ coef + intercept
     return X, y, basis
 
+
 def test_spherical_fit_predict_single_target() -> None:
     X, y, basis = _make_spherical_data()
-    reg = BasisFunctionRegressor(basis=basis, fit_intercept=True)
-    reg.fit(X, y)
-    pred = reg.predict(X)
+    pipe = Pipeline(
+        [
+            ("basis", basis),
+            ("reg", BasisFunctionRegressor(fit_intercept=True)),
+        ]
+    )
+    pipe.fit(X, y)
+    pred = pipe.predict(X)
     assert np.allclose(pred, y.ravel())
-
-
-def test_design_matrix_reuse() -> None:
-    X, y, basis = _make_polynomial_data()
-    reg = BasisFunctionRegressor(basis=basis, fit_intercept=True)
-    reg.fit(X, y)
-    design_id = id(reg.design_matrix_)
-    _ = reg.predict(X)
-    assert id(reg.design_matrix_) == design_id
 
 
 def test_incompatible_feature_space() -> None:
     X, y, basis = _make_polynomial_data()
-    reg = BasisFunctionRegressor(basis=basis, fit_intercept=True)
-    reg.fit(X, y)
+    pipe = Pipeline(
+        [
+            ("basis", basis),
+            ("reg", BasisFunctionRegressor(fit_intercept=True)),
+        ]
+    )
+    pipe.fit(X, y)
     with pytest.raises(ValueError):
-        reg.predict(np.ones((3, 3)))
+        pipe.predict(np.ones((3, 3)))
 
 
 def test_pipeline_compatibility() -> None:
@@ -70,12 +89,8 @@ def test_pipeline_compatibility() -> None:
     pipe = Pipeline(
         [
             ("scaler", StandardScaler()),
-            (
-                "reg",
-                BasisFunctionRegressor(
-                    basis=PolynomialBasis(degree=1), fit_intercept=True
-                ),
-            ),
+            ("basis", PolynomialBasis(degree=1)),
+            ("reg", BasisFunctionRegressor(fit_intercept=True)),
         ]
     )
     pipe.fit(X, y)
@@ -85,11 +100,34 @@ def test_pipeline_compatibility() -> None:
 
 def test_grid_search_compatibility() -> None:
     X, y, _ = _make_polynomial_data()
-    pipe = Pipeline([("reg", BasisFunctionRegressor(basis=PolynomialBasis(degree=1)))])
-    grid = {"reg__basis": [PolynomialBasis(1), PolynomialBasis(2)]}
+    pipe = Pipeline(
+        [
+            ("basis", PolynomialBasis(degree=1)),
+            ("reg", BasisFunctionRegressor()),
+        ]
+    )
+    grid = {"basis__degree": [1, 2]}
     search = GridSearchCV(pipe, grid, cv=2)
     search.fit(X, y)
     assert hasattr(search, "best_estimator_")
+
+
+def test_pipeline_caches_basis(tmp_path) -> None:
+    X, y, _ = _make_polynomial_data()
+    mem = Memory(location=tmp_path)
+    basis = CallCountingBasis(degree=2)
+    pipe = Pipeline(
+        [
+            ("basis", basis),
+            ("reg", BasisFunctionRegressor(fit_intercept=True)),
+        ],
+        memory=mem,
+    )
+    CallCountingBasis.n_calls = 0
+    pipe.fit(X, y)
+    assert CallCountingBasis.n_calls == 1
+    pipe.fit(X, y)
+    assert CallCountingBasis.n_calls == 1
 
 
 def test_sparse_coding_with_omp() -> None:
