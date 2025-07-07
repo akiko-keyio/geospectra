@@ -96,6 +96,8 @@ class PolynomialBasis(TransformerMixin, BaseEstimator):
 
         self.min_vals = X.min(axis=0)
         self.max_vals = X.max(axis=0)
+        self.range_ = self.max_vals - self.min_vals
+        self.range_[self.range_ == 0] = 1
         self.n_output_features_ = len(self.get_feature_names_out())
 
         return self
@@ -158,7 +160,7 @@ class PolynomialBasis(TransformerMixin, BaseEstimator):
 
         X = validate_data(self, X, accept_sparse=True, reset=False)
 
-        X = 2 * (X - self.min_vals) / (self.max_vals - self.min_vals) - 1
+        X = 2 * (X - self.min_vals) / self.range_ - 1
 
         X1, X2 = X[:, 0], X[:, 1]
 

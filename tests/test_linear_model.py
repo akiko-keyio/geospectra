@@ -154,3 +154,11 @@ def test_sparse_coding_with_omp() -> None:
     pipe.fit(X, y)
     omp = pipe.named_steps["reg"]
     assert np.allclose(omp.coef_, coef_true)
+
+
+def test_polynomial_constant_feature() -> None:
+    X = np.array([[1.0, 1.0], [1.0, 2.0], [1.0, 3.0]])
+    basis = PolynomialBasis(degree=2)
+    basis.fit(X)
+    Xt = basis.transform(X)
+    assert np.all(np.isfinite(Xt))
