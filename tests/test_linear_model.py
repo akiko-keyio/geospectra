@@ -19,20 +19,6 @@ def _make_polynomial_data() -> tuple[np.ndarray, np.ndarray, PolynomialBasis]:
     y = design @ coef + intercept
     return X, y, basis
 
-
-def _make_spherical_data() -> tuple[np.ndarray, np.ndarray, SphericalHarmonicsBasis]:
-    rng = np.random.default_rng(1)
-    lon = rng.uniform(-np.pi, np.pi, size=15)
-    lat = rng.uniform(-np.pi / 2, np.pi / 2, size=15)
-    X = np.column_stack([lon, lat])
-    basis = SphericalHarmonicsBasis(degree=2, cup=False, include_bias=True)
-    design = basis.fit_transform(X)
-    coef = rng.normal(size=(design.shape[1], 1))
-    intercept = rng.normal(size=1)
-    y = design @ coef + intercept
-    return X, y, basis
-
-
 def test_polynomial_fit_predict_multi_target() -> None:
     X, y, basis = _make_polynomial_data()
     reg = BasisFunctionRegressor(basis=basis, fit_intercept=True)
@@ -41,6 +27,18 @@ def test_polynomial_fit_predict_multi_target() -> None:
     pred = reg.predict(X)
     assert np.allclose(pred, y)
 
+def _make_spherical_data() -> tuple[np.ndarray, np.ndarray, SphericalHarmonicsBasis]:
+    rng = np.random.default_rng(1)
+    degree=40
+    lon = rng.uniform(-np.pi, np.pi, size=degree*2)
+    lat = rng.uniform(-np.pi / 2, np.pi / 2, size=degree*2)
+    X = np.column_stack([lon, lat])
+    basis = SphericalHarmonicsBasis(degree=degree, cup=False, include_bias=True)
+    design = basis.fit_transform(X)
+    coef = rng.normal(size=(design.shape[1], 1))
+    intercept = rng.normal(size=1)
+    y = design @ coef + intercept
+    return X, y, basis
 
 def test_spherical_fit_predict_single_target() -> None:
     X, y, basis = _make_spherical_data()
