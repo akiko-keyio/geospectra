@@ -557,12 +557,25 @@ class CoordsConverter:
             + np.sin(self.theta0) * np.sin(theta) * np.cos(self.phi0 - phi)
         )
 
-        # Convert to longitude with the pole as the center
-        sin_phi1 = np.sin(theta) * np.sin(phi - self.phi0) / np.sin(theta1)
-        cos_phi1 = (
-            np.sin(self.theta0) * np.cos(theta)
-            - np.cos(self.theta0) * np.sin(theta) * np.cos(phi - self.phi0)
-        ) / np.sin(theta1)
+        # Convert to longitude with the pole as the center. When ``theta1`` is
+        # zero, the longitude becomes undefined. In this degenerate case we
+        # explicitly set ``phi1`` to zero to avoid NaNs.
+        sin_theta1 = np.sin(theta1)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            sin_phi1 = np.where(
+                np.isclose(sin_theta1, 0),
+                0.0,
+                np.sin(theta) * np.sin(phi - self.phi0) / sin_theta1,
+            )
+            cos_phi1 = np.where(
+                np.isclose(sin_theta1, 0),
+                1.0,
+                (
+                    np.sin(self.theta0) * np.cos(theta)
+                    - np.cos(self.theta0) * np.sin(theta) * np.cos(phi - self.phi0)
+                )
+                / sin_theta1,
+            )
         phi1 = np.arctan2(sin_phi1, cos_phi1)
 
         return theta1, phi1
