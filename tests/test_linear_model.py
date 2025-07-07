@@ -135,12 +135,22 @@ def test_sparse_coding_with_omp() -> None:
     lon = rng.uniform(-np.pi, np.pi, size=30)
     lat = rng.uniform(-np.pi / 2, np.pi / 2, size=30)
     X = np.column_stack([lon, lat])
-    basis = SphericalHarmonicsBasis(degree=3, cup=False, include_bias=False)
-    D = basis.fit_transform(X)
-    coef_true = np.zeros(D.shape[1])
-    idx = rng.choice(D.shape[1], size=5, replace=False)
+    basis_gen = SphericalHarmonicsBasis(degree=3, cup=False, include_bias=False)
+    design = basis_gen.fit_transform(X)
+    coef_true = np.zeros(design.shape[1])
+    idx = rng.choice(design.shape[1], size=5, replace=False)
     coef_true[idx] = rng.normal(size=5)
-    y = D @ coef_true
-    omp = OrthogonalMatchingPursuit(n_nonzero_coefs=5, fit_intercept=False)
-    omp.fit(D, y)
+    y = design @ coef_true
+
+    pipe = Pipeline(
+        [
+            ("basis", SphericalHarmonicsBasis(degree=3, cup=False, include_bias=False)),
+            (
+                "reg",
+                OrthogonalMatchingPursuit(n_nonzero_coefs=5, fit_intercept=False),
+            ),
+        ]
+    )
+    pipe.fit(X, y)
+    omp = pipe.named_steps["reg"]
     assert np.allclose(omp.coef_, coef_true)
