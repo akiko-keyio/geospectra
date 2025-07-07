@@ -424,6 +424,11 @@ class CoordsConverter:
             raise ValueError(
                 "Pole must be a tuple of two floats or ['haversine','xyzmean']."
             )
+
+        if self.method == "central_scale":
+            theta1, _ = self._central(lon, lat)
+            self.scale = np.pi * self.hemisphere_scale / theta1.max()
+
         return self
 
     def transform(self, lon, lat):
@@ -557,19 +562,32 @@ class CoordsConverter:
             + np.sin(self.theta0) * np.sin(theta) * np.cos(self.phi0 - phi)
         )
 
-        # Convert to longitude with the pole as the center
-        sin_phi1 = np.sin(theta) * np.sin(phi - self.phi0) / np.sin(theta1)
-        cos_phi1 = (
-            np.sin(self.theta0) * np.cos(theta)
-            - np.cos(self.theta0) * np.sin(theta) * np.cos(phi - self.phi0)
-        ) / np.sin(theta1)
+        # Convert to longitude with the pole as the center. When ``theta1`` is
+        # zero, the longitude becomes undefined. In this degenerate case we
+        # explicitly set ``phi1`` to zero to avoid NaNs.
+        sin_theta1 = np.sin(theta1)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            sin_phi1 = np.where(
+                np.isclose(sin_theta1, 0),
+                0.0,
+                np.sin(theta) * np.sin(phi - self.phi0) / sin_theta1,
+            )
+            cos_phi1 = np.where(
+                np.isclose(sin_theta1, 0),
+                1.0,
+                (
+                    np.sin(self.theta0) * np.cos(theta)
+                    - np.cos(self.theta0) * np.sin(theta) * np.cos(phi - self.phi0)
+                )
+                / sin_theta1,
+            )
         phi1 = np.arctan2(sin_phi1, cos_phi1)
 
         return theta1, phi1
 
     def _central_scale(self, lon, lat):
-        theta1, phi1 = self._central(lon, lat)
         if self.scale is None:
-            self.scale = np.pi * self.hemisphere_scale / theta1.max()
+            raise AttributeError("scale is None, please call the fit method first")
+        theta1, phi1 = self._central(lon, lat)
         theta_scale = theta1 * self.scale
         return theta_scale, phi1
