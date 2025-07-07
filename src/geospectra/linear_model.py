@@ -6,10 +6,10 @@ from typing import Tuple
 from sklearn.base import  _fit_context
 import numpy as np
 
-from __future__ import annotations
+
 import numpy as np
 import scipy.sparse as sp
-from numpy.linalg import lstsq
+from scipy import linalg
 from sklearn.linear_model import LinearRegression
 from sklearn.utils.validation import (
     validate_data,
@@ -82,9 +82,9 @@ class LinearRegressionCond(LinearRegression):
             )
 
         # Custom Condition Number Control
-        self.cond_ = self._resolve_cond(X.shape, X.dtype)
-        self.coef_, _, self.rank_, self.singular_ = lstsq(
-            X, y, cond=self.cond_
+        self.cond_threshold_ = self._resolve_cond_threshold(X.shape, X.dtype)
+        self.coef_, _, self.rank_, self.singular_ = linalg.lstsq(
+            X, y, cond=self.cond_threshold_
         )
         self.coef_ = self.coef_.T
 
@@ -95,22 +95,22 @@ class LinearRegressionCond(LinearRegression):
         return self
 
     # -------------------------- helper -------------------------------
-    def _resolve_cond(self, shape, dtype):
+    def _resolve_cond_threshold(self, shape, dtype):
         """
         Translate user `cond` into float|None for numpy.linalg.lstsq.
         See https://www.numberanalytics.com/blog/ultimate-guide-condition-number-determinants
         """
 
-        if self.cond == "auto":
-
+        if self.cond_threshold == "auto":
             return max(shape) * np.finfo(dtype).eps
-        if self.cond is None:
+        if self.cond_threshold is None:
             return None
-        if isinstance(self.cond, (int, float)):
-            if self.cond < 0:
+        if isinstance(self.cond_threshold, (int, float)):
+            if self.cond_threshold < 0:
                 raise ValueError("`cond` must be non-negative.")
-            return float(self.cond)
+            return float(self.cond_threshold)
         raise ValueError("`cond` must be 'auto', None or a non-negative float.")
 
 
 __all__ = ["LinearRegressionCond"]
+

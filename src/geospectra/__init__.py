@@ -1,5 +1,5 @@
 from .basis import CoordsConverter, PolynomialBasis, SphericalHarmonicsBasis
-from .linear_model import BasisFunctionRegressor
+from .linear_model import LinearRegressionCond
 
 
 def __getattr__(name: str):
@@ -16,7 +16,7 @@ __all__ = [
     "CoordsConverter",
     "PolynomialBasis",
     "SphericalHarmonicsBasis",
-    "BasisFunctionRegressor",
+    "LinearRegressionCond",
     "PCA",
     "main",
 ]
