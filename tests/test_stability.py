@@ -10,11 +10,12 @@ def generate_data(
     """Generate design matrix and target for a given spherical harmonic degree."""
     basis = SphericalHarmonicsBasis(
         degree=degree,
+        cup=False,
         include_bias=False,
     )
 
-    lon = rng.uniform(-180, 180, size=degree * 100)
-    lat = rng.uniform(-90, 90, size=degree * 100)
+    lon = rng.uniform(-180, 180, size=(degree+1)**2*2)
+    lat = rng.uniform(-90, 90, size=(degree+1)**2*2)
     X = np.column_stack([lon, lat])
 
     design = basis.fit_transform(X)
@@ -23,18 +24,18 @@ def generate_data(
     intercept = rng.normal()
     y = design @ coef + intercept
 
+    print(f"n={basis.n_output_features_} r={X.shape[0]}")
+
     return design, y, coef, intercept
 
 
-@pytest.mark.parametrize("degree", [10, 25, 40])
+@pytest.mark.parametrize("degree", [5,10, 25, 40])
 def test_spherical_regressor_stability(degree: int) -> None:
     rng = np.random.default_rng(degree)
     design, y, coef, intercept = generate_data(degree, rng)
     from geospectra.linear_model import LinearRegressionCond
 
     reg = LinearRegressionCond()
-    # from sklearn.linear_model import LinearRegression
-    # reg=LinearRegression()
     reg.fit(design, y)
 
     dcoef = np.linalg.norm(reg.coef_ - coef)
