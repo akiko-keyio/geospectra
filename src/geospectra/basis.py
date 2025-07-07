@@ -424,6 +424,11 @@ class CoordsConverter:
             raise ValueError(
                 "Pole must be a tuple of two floats or ['haversine','xyzmean']."
             )
+
+        if self.method == "central_scale":
+            theta1, _ = self._central(lon, lat)
+            self.scale = np.pi * self.hemisphere_scale / theta1.max()
+
         return self
 
     def transform(self, lon, lat):
@@ -581,8 +586,8 @@ class CoordsConverter:
         return theta1, phi1
 
     def _central_scale(self, lon, lat):
-        theta1, phi1 = self._central(lon, lat)
         if self.scale is None:
-            self.scale = np.pi * self.hemisphere_scale / theta1.max()
+            raise AttributeError("scale is None, please call the fit method first")
+        theta1, phi1 = self._central(lon, lat)
         theta_scale = theta1 * self.scale
         return theta_scale, phi1
