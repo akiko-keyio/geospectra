@@ -14,8 +14,8 @@ def generate_data(
         include_bias=False,
     )
 
-    lon = rng.uniform(-180, 180, size=(degree+1)**2*2)
-    lat = rng.uniform(-90, 90, size=(degree+1)**2*2)
+    lon = rng.uniform(-180, 180, size=(degree + 1) ** 2 * 2)
+    lat = rng.uniform(-90, 90, size=(degree + 1) ** 2 * 2)
     X = np.column_stack([lon, lat])
 
     design = basis.fit_transform(X)
@@ -29,7 +29,7 @@ def generate_data(
     return design, y, coef, intercept
 
 
-@pytest.mark.parametrize("degree", [5,10, 25, 40])
+@pytest.mark.parametrize("degree", [5, 10, 25, 40])
 def test_spherical_regressor_stability(degree: int) -> None:
     rng = np.random.default_rng(degree)
     design, y, coef, intercept = generate_data(degree, rng)

@@ -33,7 +33,6 @@ class PCA:
 
         # Mean vectors
         self.mean_ = X.mean(axis=0)
-        self.mean_ = np.ones_like(self.mean_)
         assert self.mean_.shape == (self.n_features,)
 
         # Covariance matrix
